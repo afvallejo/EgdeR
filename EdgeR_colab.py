@@ -33,15 +33,28 @@ output = widgets.Output()
 def run_pipeline(_):
     with output:
         output.clear_output()
+        if not (
+            counts_path.value
+            and metadata_path.value
+            and sample_dropdown.value
+            and group_dropdown.value
+        ):
+            print("Please provide all inputs before running the pipeline.")
+            return
+
         cmd = [
             "Rscript",
-            "EdgeR_pipeline.R",
+            "/content/EdgeR_pipeline.R",
             counts_path.value,
             metadata_path.value,
             sample_dropdown.value,
             group_dropdown.value,
         ]
-        subprocess.run(cmd)
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.stdout:
+            print(result.stdout)
+        if result.stderr:
+            print(result.stderr)
 
 
 run_button.on_click(run_pipeline)
