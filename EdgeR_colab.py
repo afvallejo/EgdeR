@@ -1,5 +1,6 @@
 import subprocess
 import os
+from os import fspath
 
 import pandas as pd
 import ipywidgets as widgets
@@ -7,8 +8,12 @@ from IPython.display import display
 from IPython import get_ipython
 
 user_ns = get_ipython().user_ns if get_ipython() else {}
-default_counts = str(user_ns.get("EXP_FILE") or os.environ.get("EXP_FILE") or "")
-default_metadata = str(user_ns.get("META_FILE") or os.environ.get("META_FILE") or "")
+
+counts_val = user_ns.get("EXP_FILE") or os.environ.get("EXP_FILE")
+metadata_val = user_ns.get("META_FILE") or os.environ.get("META_FILE")
+
+default_counts = fspath(counts_val) if counts_val else ""
+default_metadata = fspath(metadata_val) if metadata_val else ""
 
 counts_path = widgets.Text(description="Counts CSV:", value=default_counts)
 metadata_path = widgets.Text(description="Metadata CSV:", value=default_metadata)
