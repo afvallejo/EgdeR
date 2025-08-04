@@ -1,6 +1,13 @@
-%%R
+args <- commandArgs(trailingOnly = TRUE)
+if (length(args) < 4) {
+  stop("Usage: Rscript EdgeR_pipeline.R <counts_csv> <metadata_csv> <sample_column> <group_column>")
+}
+counts_path <- args[1]
+metadata_path <- args[2]
+sample_col <- args[3]
+group_col <- args[4]
 
-Counts <- read.csv("/content/drive/MyDrive/00_Data/Naomi/All_Samples_Gene_Kallisto.csv",
+Counts <- read.csv(counts_path,
                    header = TRUE, # Keep header
                    row.names = NULL, # Do not assign row names initially
                    stringsAsFactors = FALSE,
@@ -18,15 +25,16 @@ rownames(Counts) <- Counts[,1]
 # Remove the first column from the data frame if needed
 Counts <- Counts[,-1]
 
-metadata <- read.csv("/content/drive/MyDrive/00_Data/Naomi/Naomi/metadata_all.csv",)
-metadata[1:4,1:4]
+metadata <- read.csv(
+  metadata_path,
+  stringsAsFactors = FALSE
+)
+metadata[1:4, 1:4]
 
-
-stringsAsFactors = FALSE
-sample <- factor(metadata_ordered$sample_name) #assign sample name from metadata
+sample <- factor(metadata[[sample_col]]) # assign sample name from metadata
 print(sample)
-group <- factor(metadata_ordered$groupA) #assign disease group from metadata
-print("group")
+group <- factor(metadata[[group_col]]) # assign disease group from metadata
+print(group)
 
 col.cell <- brewer.pal(9,"Set1")[group] # assigns each group its own colour in future graphics
 col.cell
@@ -150,108 +158,7 @@ points(Median[outliers2], IQR[outliers2], col="red", pch=19)
 
 dev.off()
 
-
-plot_name <- "SamplesIQRvsMedian"
-file_name <- paste0(root, "_", plot_name, ".pdf")
-
-#  Make IQR_Median Plots
-counts_filtered <- dge_norm_filt$counts
-log_counts<-log(counts_filtered+1)
-CPM<-cpm(dge_norm_filt)
-
-IQR<-apply(CPM, 2, IQR)
-Median<-apply(CPM, 2, median)
-diff1<-mean(Median)-min(Median)
-diff2<-max(Median)-mean(Median)
-diff3<-mean(IQR)-min(IQR)
-diff4<-max(IQR)-mean(IQR)
-
-#  These plot settings work for this data and may need to be adjusted for your own data.
-Xlim=c(mean(Median)-2*diff1,mean(Median)+2*diff2)
-Ylim=c(mean(IQR)-2*diff3,mean(IQR)+2*diff4)
-
-
-plot(Median, IQR, main="IQR vs. Median TMM normaliztion", type="n", xlim=Xlim,ylim=Ylim)
-text(Median, IQR, labels=names(IQR))
-
-#  Make boxes for StDev.
-Median_mean<-mean(Median)
-c_sd1_mean<-sd(Median)
-c_sd2_mean<-2*sd(Median)
-c_sd3_mean<-3*sd(Median)
-IQR_mean<-mean(IQR)
-c_sd1_IQR<-sd(IQR)
-c_sd2_IQR<-2*sd(IQR)
-c_sd3_IQR<-3*sd(IQR)
-
-x0_c<-Median_mean-c_sd1_mean
-y0_c<-IQR_mean-c_sd1_IQR
-x1_c<-Median_mean+c_sd1_mean
-y1_c<-IQR_mean+c_sd1_IQR
-
-x0_c.2<-Median_mean-c_sd2_mean
-y0_c.2<-IQR_mean-c_sd2_IQR
-x1_c.2<-Median_mean+c_sd2_mean
-y1_c.2<-IQR_mean+c_sd2_IQR
-
-x0_c.3<-Median_mean-c_sd3_mean
-y0_c.3<-IQR_mean-c_sd3_IQR
-x1_c.3<-Median_mean+c_sd3_mean
-y1_c.3<-IQR_mean+c_sd3_IQR
-
-segments(x0_c,y0_c, x1=x1_c, y1=y0_c, col="blue")
-segments(x0_c,y0_c, x1=x0_c, y1=y1_c, col="blue")
-segments(x1_c,y0_c, x1=x1_c, y1=y1_c, col="blue")
-segments(x0_c,y1_c, x1=x1_c, y1=y1_c, col="blue")
-
-segments(x0_c.2,y0_c.2, x1=x1_c.2, y1=y0_c.2, col="red")
-segments(x0_c.2,y0_c.2, x1=x0_c.2, y1=y1_c.2, col="red")
-segments(x1_c.2,y0_c.2, x1=x1_c.2, y1=y1_c.2, col="red")
-segments(x0_c.2,y1_c.2, x1=x1_c.2, y1=y1_c.2, col="red")
-
-#  This portion is out of range so I removed it.
-segments(x0_c.3,y0_c.3, x1=x1_c.3, y1=y0_c.3, col="green")
-segments(x0_c.3,y0_c.3, x1=x0_c.3, y1=y1_c.3, col="green")
-segments(x1_c.3,y0_c.3, x1=x1_c.3, y1=y1_c.3, col="green")
-segments(x0_c.3,y1_c.3, x1=x1_c.3, y1=y1_c.3, col="green")
-
-outliers2 <- which(IQR < IQR_mean - 3*sd(IQR) | IQR > IQR_mean + 3*sd(IQR))
-points(Median[outliers2], IQR[outliers2], col="red", pch=19)
-
-
-# Convert raw counts to logCPMs
-logcounts1 <- cpm(dge_norm_filt,log=TRUE)
-
-# Save the plot as a PDF
-pdf(file = "boxplot_logcounts1.pdf")
-boxplot(logcounts1,
-        xlab="Sample Groups",
-        ylab="Log2 counts per million",
-        las=2,
-        col=col.cell,
-        notch=TRUE,
-        main="Boxplots of logCPMs")
-par(cex.axis=0.5, las=1)
-points(jitter(1:length(logcounts1)), logcounts1, col="darkgray", pch=16)
-abline(h=median(logcounts1), col="blue", lwd=2)
-grid(nx = NULL, ny = NULL, col = "lightgray", lty = "dotted")
-dev.off() # Close the PDF device
-
-# Display the same plot in the R environment
-boxplot(logcounts1,
-        xlab="Samples",
-        ylab="Log2 counts per million",
-        las=2,
-        col=col.cell,
-        notch=TRUE,
-        main="Boxplots of logCPMs (TMM normalized after outlier removal)")
-par(mar=c(7, 4, 4, 2) + 0.1) # Adjusting margin for better visibility
-points(jitter(1:length(logcounts1)), logcounts1, col="darkgray", pch=16)
-abline(h=median(logcounts1), col="blue", lwd=2)
-grid(nx = NULL, ny = NULL, col = "lightgray", lty = "dotted")
-
-
-cpm<-cpm(dge_norm_filt)
+cpm <- cpm(dge_norm_filt)
 #cpm<-cpm(v)
 
 Y <- apply(cpm, 1, function(y) scale(y, center=TRUE, scale=FALSE))
@@ -279,12 +186,12 @@ file_name <- paste0(root, "_", plot_name, ".pdf")
 pdf(file_name)
 plot(s$u[,1], s$u[,2], pch=19, cex=2, xlab=paste0("PC1, VarExp:", round(Var[1],3)), ylab=paste0("PC2, VarExp:", round(Var[2],3)),main="PCA plot TMM Normalization",col=col.cell, ylim=c((min(s$u[,2])*1.2),(max(s$u[,2])*1.2)),xlim=c((min(s$u[,1])*1.2),(max(s$u[,1])*1.2)))
 text(s$u[,1], s$u[,2], labels=colnames(CPM),adj=c(0,2),cex=0.5)
-legend("bottomright",legend = unique(metadata$groupA),col = unique(col.cell), pch=19,cex=1)
+legend("bottomright",legend = unique(metadata[[group_col]]),col = unique(col.cell), pch=19,cex=1)
 dev.off()
 
 plot(s$u[,1], s$u[,2], pch=19, cex=2, xlab=paste0("PC1, VarExp:", round(Var[1],3)), ylab=paste0("PC2, VarExp:", round(Var[2],3)),main="PCA plot TMM Normalization",col=col.cell, ylim=c((min(s$u[,2])*1.2),(max(s$u[,2])*1.2)),xlim=c((min(s$u[,1])*1.2),(max(s$u[,1])*1.2)))
 text(s$u[,1], s$u[,2], labels=colnames(CPM),adj=c(0,2),cex=0.5)
-legend("bottomleft",legend = unique(metadata$groupA),col = unique(col.cell), pch=19,cex=1)
+legend("bottomleft",legend = unique(metadata[[group_col]]),col = unique(col.cell), pch=19,cex=1)
 
 
 
