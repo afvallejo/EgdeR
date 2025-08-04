@@ -1,4 +1,13 @@
-Counts <- read.csv("/content/drive/MyDrive/00_Data/Naomi/All_Samples_Gene_Kallisto.csv",
+args <- commandArgs(trailingOnly = TRUE)
+if (length(args) < 4) {
+  stop("Usage: Rscript EdgeR_pipeline.R <counts_csv> <metadata_csv> <sample_column> <group_column>")
+}
+counts_path <- args[1]
+metadata_path <- args[2]
+sample_col <- args[3]
+group_col <- args[4]
+
+Counts <- read.csv(counts_path,
                    header = TRUE, # Keep header
                    row.names = NULL, # Do not assign row names initially
                    stringsAsFactors = FALSE,
@@ -17,14 +26,14 @@ rownames(Counts) <- Counts[,1]
 Counts <- Counts[,-1]
 
 metadata <- read.csv(
-  "/content/drive/MyDrive/00_Data/Naomi/Naomi/metadata_all.csv",
+  metadata_path,
   stringsAsFactors = FALSE
 )
 metadata[1:4, 1:4]
 
-sample <- factor(metadata$sample_name) # assign sample name from metadata
+sample <- factor(metadata[[sample_col]]) # assign sample name from metadata
 print(sample)
-group <- factor(metadata$groupA) # assign disease group from metadata
+group <- factor(metadata[[group_col]]) # assign disease group from metadata
 print(group)
 
 col.cell <- brewer.pal(9,"Set1")[group] # assigns each group its own colour in future graphics
@@ -177,12 +186,12 @@ file_name <- paste0(root, "_", plot_name, ".pdf")
 pdf(file_name)
 plot(s$u[,1], s$u[,2], pch=19, cex=2, xlab=paste0("PC1, VarExp:", round(Var[1],3)), ylab=paste0("PC2, VarExp:", round(Var[2],3)),main="PCA plot TMM Normalization",col=col.cell, ylim=c((min(s$u[,2])*1.2),(max(s$u[,2])*1.2)),xlim=c((min(s$u[,1])*1.2),(max(s$u[,1])*1.2)))
 text(s$u[,1], s$u[,2], labels=colnames(CPM),adj=c(0,2),cex=0.5)
-legend("bottomright",legend = unique(metadata$groupA),col = unique(col.cell), pch=19,cex=1)
+legend("bottomright",legend = unique(metadata[[group_col]]),col = unique(col.cell), pch=19,cex=1)
 dev.off()
 
 plot(s$u[,1], s$u[,2], pch=19, cex=2, xlab=paste0("PC1, VarExp:", round(Var[1],3)), ylab=paste0("PC2, VarExp:", round(Var[2],3)),main="PCA plot TMM Normalization",col=col.cell, ylim=c((min(s$u[,2])*1.2),(max(s$u[,2])*1.2)),xlim=c((min(s$u[,1])*1.2),(max(s$u[,1])*1.2)))
 text(s$u[,1], s$u[,2], labels=colnames(CPM),adj=c(0,2),cex=0.5)
-legend("bottomleft",legend = unique(metadata$groupA),col = unique(col.cell), pch=19,cex=1)
+legend("bottomleft",legend = unique(metadata[[group_col]]),col = unique(col.cell), pch=19,cex=1)
 
 
 
