@@ -33,12 +33,15 @@ suppressMessages({
 
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) < 4) {
-  stop("Usage: Rscript EdgeR_pipeline.R <counts_csv> <metadata_csv> <sample_column> <group_column>")
+  stop(
+    "Usage: Rscript EdgeR_pipeline.R <counts_csv> <metadata_csv> <sample_column> <group_column> [donnor_column]"
+  )
 }
 counts_path <- args[1]
 metadata_path <- args[2]
 sample_col <- args[3]
-group_col <- args[4]
+group_colname <- args[4]
+donnor_colname <- ifelse(length(args) >= 5, args[5], "")
 
 Counts <- read.csv(
   counts_path,
@@ -59,14 +62,22 @@ Counts <- Counts[, -1]
 metadata <- read.csv(metadata_path, stringsAsFactors = FALSE)
 
 sample <- factor(metadata[[sample_col]])
-group <- factor(metadata[[group_col]])
+group <- factor(metadata[[group_colname]])
 
 col.cell <- brewer.pal(9, "Set1")[group]
 
 colnames(Counts) <- sample
 raw_counts <- Counts
 
-design <- model.matrix(~0 + group)
+if (donnor_colname != "") {
+  donnor <- factor(metadata[[donnor_colname]])
+  design <- model.matrix(~donnor + group)
+  group_col <- rep(0, ncol(design))
+  group_col[grep("^group", colnames(design))] <- 1
+} else {
+  design <- model.matrix(~0 + group)
+  group_col <- c(1, -1)
+}
 
 dge <- DGEList(counts = raw_counts, genes = rownames(raw_counts))
 dge_norm <- calcNormFactors(dge, lib.size = TRUE, method = "TMM")
@@ -184,7 +195,7 @@ colnames(Var) <- c("Percent Variance", "Cumulative % Variance")
 
 dge_norm <- estimateDisp(dge_norm, design, robust = TRUE)
 dge_norm.fit <- glmFit(dge_norm, design)
-dge.lrt <- glmLRT(dge_norm.fit, contrast = c(1, -1))
+dge.lrt <- glmLRT(dge_norm.fit, contrast = group_col)
 
 plot_name <- "PCA1"
 file_name <- paste0(root, "_", plot_name, ".pdf")
@@ -202,7 +213,7 @@ plot(
 text(s$u[, 1], s$u[, 2], labels = colnames(CPM), adj = c(0, 2), cex = 0.5)
 legend(
   "bottomright",
-  legend = unique(metadata[[group_col]]),
+  legend = unique(metadata[[group_colname]]),
   col = unique(col.cell),
   pch = 19,
   cex = 1
@@ -221,7 +232,7 @@ plot(
 text(s$u[, 1], s$u[, 2], labels = colnames(CPM), adj = c(0, 2), cex = 0.5)
 legend(
   "bottomleft",
-  legend = unique(metadata[[group_col]]),
+  legend = unique(metadata[[group_colname]]),
   col = unique(col.cell),
   pch = 19,
   cex = 1
