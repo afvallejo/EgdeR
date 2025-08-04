@@ -1,5 +1,26 @@
 %%R
 
+Counts <- read.csv("/content/drive/MyDrive/00_Data/Naomi/All_Samples_Gene_Kallisto.csv",
+                   header = TRUE, # Keep header
+                   row.names = NULL, # Do not assign row names initially
+                   stringsAsFactors = FALSE,
+                   na.strings = "") # treat empty strings as NA if applicable
+
+# Check for missing values in the first column
+if (any(is.na(Counts[,1]))) {
+  print("Warning: Missing values found in the intended row names column. Replacing with sequential numbers.")
+  Counts[,1] <- ifelse(is.na(Counts[,1]), seq_len(nrow(Counts)), Counts[,1]) #replace NAs with row numbers
+}
+
+# Set the first column as row names
+rownames(Counts) <- Counts[,1]
+
+# Remove the first column from the data frame if needed
+Counts <- Counts[,-1]
+
+metadata <- read.csv("/content/drive/MyDrive/00_Data/Naomi/Naomi/metadata_all.csv",)
+metadata[1:4,1:4]
+
 
 stringsAsFactors = FALSE
 sample <- factor(metadata_ordered$sample_name) #assign sample name from metadata
