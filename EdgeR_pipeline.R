@@ -1,3 +1,32 @@
+%%writefile /content/EdgeR_pipeline.R
+#!/usr/bin/env Rscript
+.libPaths(c("/content/R_libraries_EdgeR/content/R_libraries/", .libPaths()))
+# Load CRAN packages
+# Load required libraries
+library(devtools)
+library(tidyverse)
+library(dplyr)
+library(edgeR)
+library(limma)
+library(tximport)
+library(biomaRt)
+library(genefilter)
+library(ensembldb)
+library(EnsDb.Hsapiens.v86)
+library(EnsDb.Mmusculus.v79)
+library(rhdf5)
+library(RColorBrewer)
+library(vioplot)
+library(gplots)
+library(ggrepel)
+library(rtracklayer)
+library(FactoMineR)
+library(factoextra)
+suppressMessages({
+  library(edgeR)
+  library(RColorBrewer)
+})
+
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) < 4) {
   stop("Usage: Rscript EdgeR_pipeline.R <counts_csv> <metadata_csv> <sample_column> <group_column>")
@@ -7,37 +36,11 @@ metadata_path <- args[2]
 sample_col <- args[3]
 group_col <- args[4]
 
-Counts <- read.csv(counts_path,
-                   header = TRUE, # Keep header
-                   row.names = NULL, # Do not assign row names initially
-                   stringsAsFactors = FALSE,
-                   na.strings = "") # treat empty strings as NA if applicable
+counts <- read.csv(counts_path, row.names = 1, check.names = FALSE)
+metadata <- read.csv(metadata_path, stringsAsFactors = FALSE)
 
-# Check for missing values in the first column
-if (any(is.na(Counts[,1]))) {
-  print("Warning: Missing values found in the intended row names column. Replacing with sequential numbers.")
-  Counts[,1] <- ifelse(is.na(Counts[,1]), seq_len(nrow(Counts)), Counts[,1]) #replace NAs with row numbers
-}
-
-# Set the first column as row names
-rownames(Counts) <- Counts[,1]
-
-# Remove the first column from the data frame if needed
-Counts <- Counts[,-1]
-
-metadata <- read.csv(
-  metadata_path,
-  stringsAsFactors = FALSE
-)
-metadata[1:4, 1:4]
-
-sample <- factor(metadata[[sample_col]]) # assign sample name from metadata
-print(sample)
-group <- factor(metadata[[group_col]]) # assign disease group from metadata
-print(group)
-
-col.cell <- brewer.pal(9,"Set1")[group] # assigns each group its own colour in future graphics
-col.cell
+samples <- metadata[[sample_col]]
+group <- factor(metadata[[group_col]])
 
 
 design <- model.matrix(~0+group) # assigning matrix model to the binary configuration (control vs test)
@@ -48,7 +51,7 @@ design <- model.matrix(~0+group) # assigning matrix model to the binary configur
 colnames(design) # observing the generated matrix model
 
 
-dge <- DGEList(counts= raw_counts,genes=row.names(raw_counts)) # produces a list of DEG using the dge() function
+dge <- DGEList(counts= counts,genes=row.names(counts)) # produces a list of DEG using the dge() function
 dge_norm <- calcNormFactors(dge,lib.size=T,method="TMM") # Uses TMM normalisation for the dge list
 cpm.count <- cpm(dge_norm) # cacluating cpm for the normalised DGE data
 keep <- filterByExpr(dge_norm,group=group) # edgeR fucntion that using compiting to automatically filter genes by expression level
@@ -186,12 +189,12 @@ file_name <- paste0(root, "_", plot_name, ".pdf")
 pdf(file_name)
 plot(s$u[,1], s$u[,2], pch=19, cex=2, xlab=paste0("PC1, VarExp:", round(Var[1],3)), ylab=paste0("PC2, VarExp:", round(Var[2],3)),main="PCA plot TMM Normalization",col=col.cell, ylim=c((min(s$u[,2])*1.2),(max(s$u[,2])*1.2)),xlim=c((min(s$u[,1])*1.2),(max(s$u[,1])*1.2)))
 text(s$u[,1], s$u[,2], labels=colnames(CPM),adj=c(0,2),cex=0.5)
-legend("bottomright",legend = unique(metadata[[group_col]]),col = unique(col.cell), pch=19,cex=1)
+legend("bottomright",legend = unique(metadata$groupA),col = unique(col.cell), pch=19,cex=1)
 dev.off()
 
 plot(s$u[,1], s$u[,2], pch=19, cex=2, xlab=paste0("PC1, VarExp:", round(Var[1],3)), ylab=paste0("PC2, VarExp:", round(Var[2],3)),main="PCA plot TMM Normalization",col=col.cell, ylim=c((min(s$u[,2])*1.2),(max(s$u[,2])*1.2)),xlim=c((min(s$u[,1])*1.2),(max(s$u[,1])*1.2)))
 text(s$u[,1], s$u[,2], labels=colnames(CPM),adj=c(0,2),cex=0.5)
-legend("bottomleft",legend = unique(metadata[[group_col]]),col = unique(col.cell), pch=19,cex=1)
+legend("bottomleft",legend = unique(metadata$groupA),col = unique(col.cell), pch=19,cex=1)
 
 
 
