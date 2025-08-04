@@ -7,8 +7,8 @@ from IPython.display import display
 from IPython import get_ipython
 
 user_ns = get_ipython().user_ns if get_ipython() else {}
-default_counts = user_ns.get("EXP_FILE") or os.environ.get("EXP_FILE", "")
-default_metadata = user_ns.get("META_FILE") or os.environ.get("META_FILE", "")
+default_counts = str(user_ns.get("EXP_FILE") or os.environ.get("EXP_FILE") or "")
+default_metadata = str(user_ns.get("META_FILE") or os.environ.get("META_FILE") or "")
 
 counts_path = widgets.Text(description="Counts CSV:", value=default_counts)
 metadata_path = widgets.Text(description="Metadata CSV:", value=default_metadata)
