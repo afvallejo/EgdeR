@@ -1,11 +1,17 @@
 import subprocess
+import os
 
 import pandas as pd
 import ipywidgets as widgets
 from IPython.display import display
+from IPython import get_ipython
 
-counts_path = widgets.Text(description="Counts CSV:")
-metadata_path = widgets.Text(description="Metadata CSV:")
+user_ns = get_ipython().user_ns if get_ipython() else {}
+default_counts = user_ns.get("EXP_FILE") or os.environ.get("EXP_FILE", "")
+default_metadata = user_ns.get("META_FILE") or os.environ.get("META_FILE", "")
+
+counts_path = widgets.Text(description="Counts CSV:", value=default_counts)
+metadata_path = widgets.Text(description="Metadata CSV:", value=default_metadata)
 
 sample_dropdown = widgets.Dropdown(description="Sample column:")
 group_dropdown = widgets.Dropdown(description="Group column:")
@@ -25,6 +31,8 @@ def update_columns(change):
 
 
 metadata_path.observe(update_columns, names="value")
+
+update_columns(None)
 
 run_button = widgets.Button(description="Run EdgeR pipeline")
 output = widgets.Output()
