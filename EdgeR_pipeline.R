@@ -288,5 +288,7 @@ results$FDR <- filtPadj[, j, drop = TRUE]
 results$de <- sign(results$logFC) * (results$FDR < 0.05)
 results$sig <- abs(results$de)
 results[is.na(results$sig), ]$sig <- 0
-
+names(results)[names(results) == "logFC"] <- "log2FoldChange"
+names(results)[1] <- "gene_symbol"          
+print(dim(results[results$sig==1,]))
 write.csv(results, file = paste0(root, "_edgeR_results.csv"), row.names = FALSE)
